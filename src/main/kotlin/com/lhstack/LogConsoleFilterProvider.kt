@@ -9,6 +9,7 @@ import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
+import groovy.lang.GroovyShell
 
 class LogConsoleFilterProvider : ConsoleDependentFilterProvider() {
     override fun getDefaultFilters(
@@ -20,19 +21,39 @@ class LogConsoleFilterProvider : ConsoleDependentFilterProvider() {
         return view.getClientProperty(LogToolWindowFactory.ID)?.let {
             arrayOf()
         } ?: arrayOf(object : Filter {
+
+            val groovyShell = GroovyShell()
+
             override fun applyFilter(
                 line: String,
                 entireLength: Int,
             ): Filter.Result? {
                 val logView = LogContext.get(project)
-                if(logView != null) {
+                if (logView != null) {
                     val impl = logView as ConsoleViewImpl
                     val filterText = impl.getClientProperty("filterText")
-                    if(filterText != null) {
-                        if(line.contains(filterText.toString())){
-                            LogContext.get(project)?.print(line, ConsoleViewContentType.SYSTEM_OUTPUT)
+
+                    if (filterText != null) {
+                        try {
+                            groovyShell.setVariable("result", line)
+                            val evaluate = groovyShell.evaluate(filterText as String?)
+                            val result = groovyShell.getVariable("result")?.toString() ?: ""
+                            if (evaluate != null) {
+                                if (evaluate is Boolean && evaluate) {
+                                    LogContext.get(project)?.print(result, ConsoleViewContentType.SYSTEM_OUTPUT)
+                                } else if(evaluate !is Boolean){
+                                    LogContext.get(project)
+                                        ?.print(evaluate.toString(), ConsoleViewContentType.SYSTEM_OUTPUT)
+                                }
+                            } else {
+                                LogContext.get(project)?.print(result, ConsoleViewContentType.SYSTEM_OUTPUT)
+                            }
+                        } catch (e: Throwable) {
+                            if (line.contains(filterText.toString())) {
+                                LogContext.get(project)?.print(line, ConsoleViewContentType.SYSTEM_OUTPUT)
+                            }
                         }
-                    }else {
+                    } else {
                         LogContext.get(project)?.print(line, ConsoleViewContentType.SYSTEM_OUTPUT)
                     }
                 }
