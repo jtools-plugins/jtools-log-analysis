@@ -35,6 +35,7 @@ class PluginImpl : IPlugin {
             this.anchor = ToolWindowAnchor.RIGHT
             this.icon = Helper.findIcon("icons/logo.svg", PluginImpl::class.java)
             this.canCloseContent = false
+            this.sideTool = true
         }
     }
 
