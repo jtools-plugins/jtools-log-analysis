@@ -9,6 +9,7 @@ import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
+import groovy.lang.GString
 import groovy.lang.GroovyShell
 
 class LogConsoleFilterProvider : ConsoleDependentFilterProvider() {
@@ -41,10 +42,15 @@ class LogConsoleFilterProvider : ConsoleDependentFilterProvider() {
                             if (evaluate != null) {
                                 if (evaluate is Boolean && evaluate) {
                                     LogContext.get(project)?.print(result, ConsoleViewContentType.SYSTEM_OUTPUT)
-                                } else if(evaluate !is Boolean){
+                                } else if (evaluate is GString || evaluate is String) {
+                                    if (line.contains(evaluate.toString())) {
+                                        LogContext.get(project)?.print(result, ConsoleViewContentType.SYSTEM_OUTPUT)
+                                    }
+                                } else if (evaluate !is Boolean) {
                                     LogContext.get(project)
-                                        ?.print(evaluate.toString(), ConsoleViewContentType.SYSTEM_OUTPUT)
+                                        ?.print(result, ConsoleViewContentType.SYSTEM_OUTPUT)
                                 }
+
                             } else {
                                 LogContext.get(project)?.print(result, ConsoleViewContentType.SYSTEM_OUTPUT)
                             }

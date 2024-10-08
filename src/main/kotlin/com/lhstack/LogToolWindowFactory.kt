@@ -23,6 +23,7 @@ import com.intellij.ui.LanguageTextField
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBDimension
 import com.lhstack.tools.plugins.Helper
+import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.io.File
 import java.nio.file.Files
@@ -54,13 +55,18 @@ class LogToolWindowFactory(val disposable: Disposable) : ToolWindowFactory {
             this.add(console.component, BorderLayout.CENTER)
             this.add(JPanel().apply {
                 this.layout = BoxLayout(this, BoxLayout.X_AXIS)
-                val textField = LanguageTextField(Language.findLanguageByID("Groovy"), project, loadCache(project), true).apply {
-                    this.document.addDocumentListener(object : com.intellij.openapi.editor.event.DocumentListener {
-                        override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-                            console.putClientProperty("filterText", event.document.text)
-                            storeCache(project,event.document.text)
-                        }
-                    })
+                val cacheScript = loadCache(project)
+                val textField =
+                    LanguageTextField(Language.findLanguageByID("Groovy"), project, cacheScript, true).apply {
+                        this.document.addDocumentListener(object : com.intellij.openapi.editor.event.DocumentListener {
+                            override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
+                                console.putClientProperty("filterText", event.document.text)
+                                storeCache(project, event.document.text)
+                            }
+                        })
+                    }
+                if (StringUtils.isNotBlank(cacheScript)) {
+                    console.putClientProperty("filterText", cacheScript)
                 }
                 Disposer.register(disposable) {
                     textField.editor?.let {
@@ -101,7 +107,7 @@ class LogToolWindowFactory(val disposable: Disposable) : ToolWindowFactory {
                                     com.intellij.openapi.editor.event.DocumentListener {
                                     override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
                                         textField.setText(event.document.text)
-                                        storeCache(project,event.document.text)
+                                        storeCache(project, event.document.text)
                                     }
                                 })
                                 Disposer.register(this.disposable) {
