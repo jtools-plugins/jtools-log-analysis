@@ -24,6 +24,8 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBDimension
 import com.lhstack.tools.plugins.Helper
 import java.awt.BorderLayout
+import java.io.File
+import java.nio.file.Files
 import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -52,10 +54,11 @@ class LogToolWindowFactory(val disposable: Disposable) : ToolWindowFactory {
             this.add(console.component, BorderLayout.CENTER)
             this.add(JPanel().apply {
                 this.layout = BoxLayout(this, BoxLayout.X_AXIS)
-                val textField = LanguageTextField(Language.findLanguageByID("Groovy"), project, "", true).apply {
+                val textField = LanguageTextField(Language.findLanguageByID("Groovy"), project, loadCache(project), true).apply {
                     this.document.addDocumentListener(object : com.intellij.openapi.editor.event.DocumentListener {
                         override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-                            console.putClientProperty("filterText", text)
+                            console.putClientProperty("filterText", event.document.text)
+                            storeCache(project,event.document.text)
                         }
                     })
                 }
@@ -98,6 +101,7 @@ class LogToolWindowFactory(val disposable: Disposable) : ToolWindowFactory {
                                     com.intellij.openapi.editor.event.DocumentListener {
                                     override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
                                         textField.setText(event.document.text)
+                                        storeCache(project,event.document.text)
                                     }
                                 })
                                 Disposer.register(this.disposable) {
@@ -136,4 +140,32 @@ class LogToolWindowFactory(val disposable: Disposable) : ToolWindowFactory {
         content.icon = Helper.findIcon("icons/tab.svg", LogToolWindowFactory::class.java)
         toolWindow.contentManager.addContent(content)
     }
+
+    fun storeCache(project: Project, script: String) {
+        project.basePath?.let {
+            File("${it}/.idea/JTools Log Analysis.groovy").apply {
+                val parent = this.parentFile
+                if (!parent.exists()) {
+                    parent.mkdirs()
+                }
+            }.let {
+                Files.writeString(it.toPath(), script)
+            }
+        }
+    }
+
+    fun loadCache(project: Project): String = project.basePath?.let {
+        File("${it}/.idea/JTools Log Analysis.groovy").apply {
+            val parent = this.parentFile
+            if (!parent.exists()) {
+                parent.mkdirs()
+            }
+        }.let {
+            if (!it.exists()) {
+                ""
+            } else {
+                Files.readString(it.toPath())!!
+            }
+        }
+    } ?: ""
 }
