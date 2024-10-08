@@ -122,7 +122,7 @@ class LogToolWindowFactory(val disposable: Disposable) : ToolWindowFactory {
                             }
 
                             override fun createCenterPanel(): JComponent? {
-                                return JBScrollPane(languageTextField)
+                                return languageTextField
                             }
 
                         }
